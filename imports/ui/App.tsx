@@ -1,13 +1,19 @@
 import React, { useState } from "react";
 import { Meteor } from "meteor/meteor";
 import { useTracker } from "meteor/react-meteor-data";
-import { TasksCollection } from "/imports/api/TasksCollection";
+import { TasksCollection } from "/imports/db/TasksCollection";
 import { Task } from "./Task";
 import { TaskForm } from "./TaskForm";
 import { TaskI } from "/definition/Task";
 import { LoginForm } from "./LoginForm";
 
 const COMPLETED_FILTER = { isChecked: { $ne: true } };
+
+type TasksTracker = {
+  tasks: TaskI[];
+  pendingTasksCount: number;
+  isLoading?: boolean;
+};
 
 export const App = () => {
   const [hideCompleted, setHideCompleted] = useState(false);
@@ -16,28 +22,37 @@ export const App = () => {
 
   const userFilter = user ? { userId: user._id } : {};
 
-  const tasks: TaskI[] = useTracker(() =>
-    TasksCollection.find(
-      { ...userFilter, ...(hideCompleted ? COMPLETED_FILTER : {}) },
-      { sort: { createdAt: -1 } }
-    ).fetch()
+  const { tasks, pendingTasksCount, isLoading }: TasksTracker = useTracker(
+    (): TasksTracker => {
+      const noDataAvailable = { tasks: [], pendingTasksCount: 0 };
+
+      if (!Meteor.user()) {
+        return noDataAvailable;
+      }
+
+      const handler = Meteor.subscribe("tasks");
+
+      if (!handler.ready()) {
+        return { ...noDataAvailable, isLoading: true };
+      }
+
+      const tasks = TasksCollection.find(
+        { ...userFilter, ...(hideCompleted ? COMPLETED_FILTER : {}) },
+        { sort: { createdAt: -1 } }
+      ).fetch();
+
+      const pendingTasksCount = TasksCollection.find(COMPLETED_FILTER).count();
+
+      return { tasks, pendingTasksCount };
+    }
   );
 
-  const pendingTasksCount = useTracker(() => {
-    if (!user) return 0;
-    TasksCollection.find({ ...COMPLETED_FILTER, ...userFilter }).count();
-  });
-
   const toggleChecked = ({ _id, isChecked }: TaskI) => {
-    TasksCollection.update(_id, {
-      $set: {
-        isChecked: !isChecked,
-      },
-    });
+    Meteor.call("tasks.setIsChecked", _id, !isChecked);
   };
 
   const deleteTask = ({ _id }: TaskI) => {
-    TasksCollection.remove(_id);
+    Meteor.call("tasks.remove", _id);
   };
 
   const logout = () => Meteor.logout();
@@ -62,14 +77,19 @@ export const App = () => {
         {user ? (
           <>
             <div className="user" onClick={logout}>
-              {user.username} 🚪
+              {user.username}
             </div>
-            <TaskForm user={user} />
+
+            <TaskForm />
+
             <div className="filter">
               <button onClick={() => setHideCompleted(!hideCompleted)}>
                 {hideCompleted ? "Show All" : "Hide Completed"}
               </button>
             </div>
+
+            {isLoading && <div className="loading">loading...</div>}
+
             <ul className="tasks">
               {tasks.map((task) => (
                 <Task
