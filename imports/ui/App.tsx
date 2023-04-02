@@ -18,7 +18,7 @@ type TasksTracker = {
 export const App = () => {
   const [hideCompleted, setHideCompleted] = useState(false);
 
-  const user = useTracker(() => Meteor.user());
+  const user: Meteor.User | null = useTracker(() => Meteor.user());
 
   const userFilter = user ? { userId: user._id } : {};
 
@@ -66,10 +66,7 @@ export const App = () => {
       <header>
         <div className="app-bar">
           <div className="app-header">
-            <h1>
-              📝️ To Do List
-              {pendingTasksTitle}
-            </h1>
+            <h1>📝️ To Do List {pendingTasksTitle}</h1>
           </div>
         </div>
       </header>
@@ -77,7 +74,7 @@ export const App = () => {
         {user ? (
           <>
             <div className="user" onClick={logout}>
-              {user.username}
+              {user.username ?? (user.profile as any).name}
             </div>
 
             <TaskForm />

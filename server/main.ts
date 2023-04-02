@@ -1,8 +1,15 @@
+import path from "path";
+import * as dotenv from "dotenv";
+
 import { Meteor } from "meteor/meteor";
 import { Accounts } from "meteor/accounts-base";
+import { ServiceConfiguration } from "meteor/service-configuration";
+
 import { TasksCollection } from "/imports/db/TasksCollection";
 import "/imports/api/tasksMethods";
 import "/imports/api/tasksPublications";
+
+dotenv.config({ path: path.resolve(process.cwd(), "../../../../../.env") });
 
 const SEED_USERNAME = "meteorite";
 const SEED_PASSWORD = "password";
@@ -38,3 +45,14 @@ Meteor.startup(async () => {
     ].forEach((v) => insertTask(v, user));
   }
 });
+
+ServiceConfiguration.configurations.upsert(
+  { service: "github" },
+  {
+    $set: {
+      loginStyle: "popup",
+      clientId: process.env.GITHUB_CLIENT_ID,
+      secret: process.env.GITHUB_SECRET_KEY,
+    },
+  }
+);

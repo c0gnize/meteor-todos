@@ -176,11 +176,10 @@ header {
 
 .user {
   display: flex;
-
   align-self: flex-end;
-
   margin: 8px 16px 0;
   font-weight: bold;
+  cursor: pointer;
 }
 
 .loading {
@@ -192,4 +191,19 @@ header {
   align-items: center;
 
   font-weight: bold;
+}
+
+.github-btn {
+  border: 1px solid #e1e5f0;
+  background-color: #fff;
+  width: 245px;
+  margin: 0 auto 16px;
+  color: black;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.github-btn > div {
+  margin-left: 4px;
 }
